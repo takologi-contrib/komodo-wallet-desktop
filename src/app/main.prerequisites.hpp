@@ -18,6 +18,7 @@
 #include "atomicdex/pch.hpp"
 
 //! C Headers
+#include <chrono>
 #include <csignal>
 
 //! Qt
@@ -159,6 +160,18 @@ static void init_logging()
     spdlog::register_logger(logger);
     spdlog::set_default_logger(logger);
     spdlog::set_level(spdlog::level::trace);
+
+    //! The logger is asynchronous: records queue up and a worker thread writes
+    //! them, so a hard crash discards whatever had not been written yet -- which
+    //! is exactly the tail that would explain the crash. A log that ends
+    //! mid-line is this queue being lost, not a clue about where the crash was.
+    //!
+    //! Flush on every error so a record that precedes a crash reaches the file,
+    //! and drain periodically so the log is never more than a few seconds behind
+    //! even when nothing logs an error on the way down.
+    spdlog::flush_on(spdlog::level::err);
+    spdlog::flush_every(std::chrono::seconds(3));
+
     spdlog::set_pattern("[%T] [%^%l%$] [%s:%#] [%t]: %v");
 }
 
