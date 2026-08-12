@@ -1454,9 +1454,22 @@ namespace atomic_dex
 
             else if (coin_info.is_sia_family)
             {
+                //! `.value().at(0)` threw straight out of this lambda for a coin
+                //! configured without a server list, and the call site below is
+                //! not guarded, so one unconfigured Sia coin took the process
+                //! down instead of failing its own activation.
+                const auto& sia_urls = coin_info.sia_family_urls;
+                if (!sia_urls.has_value() || sia_urls->empty())
+                {
+                    SPDLOG_ERROR("No server url is configured for sia coin {}, cannot enable it", coin_info.ticker);
+                    this->dispatcher_.trigger<enabling_coin_failed>(
+                        coin_info.ticker, fmt::format("No server url is configured for {}", coin_info.ticker));
+                    return {};
+                }
+
                 t_enable_sia_coin_request request{
                     .coin_name            = coin_info.ticker,
-                    .server_url           = coin_info.sia_family_urls.value().at(0),
+                    .server_url           = sia_urls->at(0),
                     .with_tx_history      = false}; // NotSupportedFor
 
                 nlohmann::json j = kdf::template_request("task::enable_sia::init", true);
@@ -1465,6 +1478,14 @@ namespace atomic_dex
                 //SPDLOG_INFO("Enable task request: {}", batch.dump(4));
                 return {batch, {coin_info.ticker}};
             }
+
+            //! Reached when a coin is routed to a task activation without
+            //! carrying either family flag. Falling off the end here returned a
+            //! garbage pair that the caller destructured and then destroyed.
+            SPDLOG_ERROR("{} uses neither the zhtlc nor the sia activation task, cannot enable it", coin_info.ticker);
+            this->dispatcher_.trigger<enabling_coin_failed>(
+                coin_info.ticker, fmt::format("{} has no supported activation task", coin_info.ticker));
+            return {};
         };
 
         auto answer_functor = [this](coin_config_t coin_info, nlohmann::json batch, std::vector<std::string> tickers)
@@ -1698,9 +1719,25 @@ namespace atomic_dex
 
         for (auto&& coin: coins)
         {
-            auto&& [request, coins_to_enable] = request_functor(coin);
-            //SPDLOG_INFO("{} {}", request.dump(4), coins_to_enable[0]);
-            answer_functor(coin, request, coins_to_enable);
+            //! Building the request touches optional config fields, so a coin
+            //! with an incomplete entry must fail only its own activation. This
+            //! loop is not inside any other handler: an exception escaping here
+            //! leaves the process with nowhere to catch it.
+            try
+            {
+                auto&& [request, coins_to_enable] = request_functor(coin);
+                //SPDLOG_INFO("{} {}", request.dump(4), coins_to_enable[0]);
+                if (coins_to_enable.empty())
+                {
+                    continue;
+                }
+                answer_functor(coin, request, coins_to_enable);
+            }
+            catch (const std::exception& error)
+            {
+                SPDLOG_ERROR("exception while preparing the activation of {}: {}", coin.ticker, error.what());
+                this->dispatcher_.trigger<enabling_coin_failed>(coin.ticker, error.what());
+            }
         }
     }
 

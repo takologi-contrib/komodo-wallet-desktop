@@ -708,6 +708,10 @@ namespace atomic_dex::kdf
         catch (const std::exception& error)
         {
             SPDLOG_ERROR("exception in async_process_rpc_get for rpc_command {}, url {}, endpoint {}: {}", rpc_command, url, TO_STD_STR(client->base_uri().to_string()), error.what());
+            //! Never fall through: the caller chains .then() onto the result, so
+            //! returning nothing hands it a garbage task. A faulted task reaches
+            //! the existing error continuation like any other request failure.
+            return pplx::task_from_exception<web::http::http_response>(std::current_exception());
         }
     }
 
