@@ -129,6 +129,7 @@ namespace atomic_dex
        void process_tx_answer(const nlohmann::json& answer_json, std::string ticker);
        void process_tx_tokenscan(const std::string& ticker, bool is_a_reset);
        void fetch_single_balance(const coin_config_t& cfg_infos);
+       void fetch_single_balance(const std::string& ticker);
 
        //!
        std::pair<bool, std::string>                        process_batch_enable_answer(const nlohmann::json& answer);
@@ -158,6 +159,7 @@ namespace atomic_dex
        void on_gui_leave_trading(const gui_leave_trading& evt);
        void on_gui_enter_wallet(const gui_enter_wallet& evt);
        void on_gui_leave_wallet(const gui_leave_wallet& evt);
+       void on_coin_fully_initialized_event(const coin_fully_initialized& evt);
 
        //! Spawn kdf instance with given seed
        void spawn_kdf_instance(std::string wallet_name, std::string passphrase, bool with_pin_cfg = false, std::string rpcpassword = "");
