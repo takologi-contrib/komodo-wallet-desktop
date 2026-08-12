@@ -291,6 +291,7 @@ namespace atomic_dex
         dispatcher_.sink<gui_enter_wallet>().connect<&kdf_service::on_gui_enter_wallet>(*this);
         dispatcher_.sink<gui_leave_wallet>().connect<&kdf_service::on_gui_leave_wallet>(*this);
         dispatcher_.sink<refresh_orderbook_model_data>().connect<&kdf_service::on_refresh_orderbook_model_data>(*this);
+        dispatcher_.sink<coin_fully_initialized>().connect<&kdf_service::on_coin_fully_initialized_event>(*this);
         SPDLOG_INFO("kdf_service created");
     }
 
@@ -376,6 +377,7 @@ namespace atomic_dex
         dispatcher_.sink<gui_enter_wallet>().disconnect<&kdf_service::on_gui_enter_wallet>(*this);
         dispatcher_.sink<gui_leave_wallet>().disconnect<&kdf_service::on_gui_leave_wallet>(*this);
         dispatcher_.sink<refresh_orderbook_model_data>().disconnect<&kdf_service::on_refresh_orderbook_model_data>(*this);
+        dispatcher_.sink<coin_fully_initialized>().disconnect<&kdf_service::on_coin_fully_initialized_event>(*this);
         SPDLOG_INFO("kdf signals successfully disconnected");
         bool kdf_stopped = false;
         if (m_kdf_running)
@@ -1905,6 +1907,46 @@ namespace atomic_dex
             return;
         }
         process_orderbook(is_a_reset);
+    }
+
+    //! Fetch the balance of a coin that has just become active, so it does not
+    //! stay absent until the next `fetch_infos_thread` tick (43 s away, and
+    //! skipped entirely while coins are still being enabled).
+    //!
+    //! Hooked to `coin_fully_initialized` rather than repeated in each enabling
+    //! function because the enabling paths do not agree on this: the UTXO/QRC20
+    //! and ERC20 batches record the balance from their own answer, but the
+    //! task-based path (ZHTLC, Sia), the Tendermint path, and every
+    //! "already activated" recovery branch mark the coin enabled without ever
+    //! recording one. Anything that reaches the active state is covered here,
+    //! including enabling paths added later.
+    //!
+    //! The work is spawned rather than run inline: this event is dispatched
+    //! synchronously, sometimes while the caller holds `m_coin_cfg_mutex`, and
+    //! reading the coin config here would then deadlock on a non-recursive
+    //! shared_mutex.
+    void kdf_service::on_coin_fully_initialized_event(const coin_fully_initialized& evt)
+    {
+        for (const auto& ticker: evt.tickers)
+        {
+            async::spawn([this, ticker]() { fetch_single_balance(ticker); });
+        }
+    }
+
+    void kdf_service::fetch_single_balance(const std::string& ticker)
+    {
+        const auto coin_info = get_coin_info(ticker);
+
+        //! An unknown ticker has nothing to query, and a coin whose activation
+        //! task has not reported success yet has no balance to report -- the
+        //! task-based path marks a coin enabled while it is still building its
+        //! wallet database. `fetch_infos_thread` picks that one up once it is
+        //! ready, as it did before this hook existed.
+        if (coin_info.ticker.empty() || !is_task_activation_ready(ticker))
+        {
+            return;
+        }
+        fetch_single_balance(coin_info);
     }
 
     void kdf_service::fetch_single_balance(const coin_config_t& cfg_infos)
