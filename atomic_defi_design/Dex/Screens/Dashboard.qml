@@ -407,6 +407,15 @@ Item
         return getStatusStep(status) + " " + getStatusText(status, short_text)
     }
 
+    // Every case here must mirror a real persisted swap-event name — the taker
+    // and maker each have their own enum (TakerSwapEvent / MakerSwapEvent in
+    // mm2src/mm2_main/src/lp_swap/{taker,maker}_swap.rs on the KDF side), and
+    // an event missing here silently falls through to the raw, untranslated
+    // enum name via the default case below. A validation failure like
+    // MakerPaymentValidateFailed was previously one such gap: the swap was
+    // safely aborted before the taker's payment was ever sent, but the
+    // progress view showed the bare Rust identifier instead of a readable
+    // label, leaving the user unable to tell what actually happened.
     function getEventText(event_name)
     {
         switch (event_name)
@@ -455,6 +464,64 @@ Item
                 return qsTr("Maker payment refunded")
             case "MakerPaymentRefundFailed":
                 return qsTr("Maker payment refund failed")
+            // --- Taker-side events absent from the switch above ---
+            case "TakerFeeSendFailed":
+                return qsTr("Taker fee send failed")
+            case "TakerPaymentInstructionsReceived":
+                return qsTr("Taker payment instructions obtained")
+            case "MakerPaymentValidateFailed":
+                return qsTr("Maker payment validate failed")
+            case "WatcherMessageSent":
+                return qsTr("Watcher message sent")
+            case "TakerPaymentTransactionFailed":
+                return qsTr("Taker payment transaction failed")
+            case "TakerPaymentDataSendFailed":
+                return qsTr("Taker payment data send failed")
+            case "TakerPaymentWaitForSpendFailed":
+                return qsTr("Taker payment wait for spend failed")
+            case "MakerPaymentSpendConfirmed":
+                return qsTr("Maker payment spend confirmed")
+            case "MakerPaymentSpendConfirmFailed":
+                return qsTr("Maker payment spend confirm failed")
+            case "MakerPaymentSpentByWatcher":
+                return qsTr("Maker payment spent by watcher")
+            case "MakerPaymentSpendFailed":
+                return qsTr("Maker payment spend failed")
+            case "TakerPaymentWaitRefundStarted":
+                return qsTr("Taker payment wait refund started")
+            case "TakerPaymentRefundStarted":
+                return qsTr("Taker payment refund started")
+            case "TakerPaymentRefunded":
+                return qsTr("Taker payment refunded")
+            case "TakerPaymentRefundFinished":
+                return qsTr("Taker payment refund finished")
+            case "TakerPaymentRefundedByWatcher":
+                return qsTr("Taker payment refunded by watcher")
+            case "TakerPaymentRefundFailed":
+                return qsTr("Taker payment refund failed")
+            // --- Maker-side events absent from the switch above ---
+            case "MakerPaymentInstructionsReceived":
+                return qsTr("Maker payment instructions obtained")
+            case "TakerFeeValidated":
+                return qsTr("Taker fee validated")
+            case "MakerPaymentSent":
+                return qsTr("Maker payment sent")
+            case "TakerPaymentReceived":
+                return qsTr("Taker payment received")
+            case "TakerPaymentWaitConfirmStarted":
+                return qsTr("Taker payment wait confirm started")
+            case "TakerPaymentValidatedAndConfirmed":
+                return qsTr("Taker payment validated and confirmed")
+            case "TakerPaymentSpendConfirmStarted":
+                return qsTr("Taker payment spend wait confirm started")
+            case "TakerPaymentSpendConfirmed":
+                return qsTr("Taker payment spend confirmed")
+            case "TakerPaymentSpendConfirmFailed":
+                return qsTr("Taker payment spend confirm failed")
+            case "MakerPaymentRefundStarted":
+                return qsTr("Maker payment refund started")
+            case "MakerPaymentRefundFinished":
+                return qsTr("Maker payment refund finished")
             default:
                 return qsTr(event_name)
         }
