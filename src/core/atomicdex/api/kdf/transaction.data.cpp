@@ -7,7 +7,21 @@ namespace atomic_dex::kdf
 {
     void from_json(const nlohmann::json& j, fee_regular_coin& cfg)
     {
-        j.at("amount").get_to(cfg.amount);
+        // KDF's TxFeeDetails is `#[serde(tag = "type")]`, and most variants
+        // (Utxo, Slp, Solana) carry the amount as "amount" -- but Sia's own
+        // shape ({"type":"Sia","coin":...,"policy":...,"total_amount":...})
+        // names the same single-number fee "total_amount" instead. Both are
+        // exactly one plain amount with nothing else worth displaying, so
+        // both are handled by this same struct rather than adding a
+        // Sia-specific one.
+        if (j.contains("amount"))
+        {
+            j.at("amount").get_to(cfg.amount);
+        }
+        else
+        {
+            j.at("total_amount").get_to(cfg.amount);
+        }
     }
 
     void from_json(const nlohmann::json& j, fee_erc_coin& cfg)
@@ -37,18 +51,34 @@ namespace atomic_dex::kdf
 
     void from_json(const nlohmann::json& j, fees_data& cfg)
     {
-        if (j.count("amount") == 1)
+        // Sia's TxFeeDetails (see fee_regular_coin::from_json above) carries
+        // "total_amount" instead of "amount" -- route it to the same
+        // single-amount struct rather than falling through to the ERC-gas
+        // branch below, which threw ("key 'gas' not found") the moment a
+        // real Sia withdraw first exercised this path: SC has no "amount"
+        // key, isn't QTUM, and the ERC shape is not optional-field-tolerant.
+        if (j.count("amount") == 1 || j.count("total_amount") == 1)
         {
             cfg.normal_fees = fee_regular_coin{};
             from_json(j, cfg.normal_fees.value());
         }
-        else if (j.at("coin").get<std::string>() == "QTUM" || j.at("coin").get<std::string>() == "tQTUM")
+        else if (j.value("coin", std::string{}) == "QTUM" || j.value("coin", std::string{}) == "tQTUM")
         {
             cfg.qrc_fees = fee_qrc_coin{};
             from_json(j, cfg.qrc_fees.value());
         }
         else
         {
+            // Falls through here for Eth/Qrc20-non-platform/Tron shapes.
+            // Eth is genuinely gas-shaped and this is correct for it. Tron's
+            // TxFeeDetails has no "coin" field and a completely different
+            // shape (total_fee_sun/bandwidth/energy) that nothing here
+            // parses yet; TRX/TRC20 cannot currently be activated through
+            // this wallet's `enable` flow anyway (a separate, known gap), so
+            // this stays a latent mismatch rather than a reachable crash for
+            // now. The `.value(...)` above (rather than `.at("coin")`) at
+            // least keeps a coinless fee shape like Tron's from throwing on
+            // this check specifically.
             cfg.erc_fees = fee_erc_coin{};
             from_json(j, cfg.erc_fees.value());
         }
