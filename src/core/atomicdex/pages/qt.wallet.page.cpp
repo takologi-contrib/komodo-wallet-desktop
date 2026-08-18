@@ -522,11 +522,14 @@ namespace atomic_dex
         const auto&        ticker     = kdf_system.get_current_ticker();
         auto               coin_info  = kdf_system.get_coin_info(ticker);
 
-        if (coin_info.is_sia_family)
-        {
-            SPDLOG_ERROR("SIA Withdraws are not implemented yet...");
-        }
-        else if (coin_info.is_zhtlc_family)
+        // Sia's withdraw is a plain, synchronous MmCoin::withdraw on the KDF
+        // side (mm2src/coins/siacoin/siacoin_mm_coin.rs) with no task-based
+        // flow of its own, so it belongs on the general path below like any
+        // other non-ZHTLC coin. This branch used to stop here after only
+        // logging an error: set_send_busy(true) above was never undone, the
+        // preview screen stayed busy for the rest of the session, and no
+        // request was ever sent to KDF, with no user-facing error either.
+        if (coin_info.is_zhtlc_family)
         {
             t_withdraw_init_request withdraw_init_req{.coin = ticker, .to = address.toStdString(), .amount = max ? "0" : amount.toStdString(), .memo = memo.toStdString(), .max = max};
 
