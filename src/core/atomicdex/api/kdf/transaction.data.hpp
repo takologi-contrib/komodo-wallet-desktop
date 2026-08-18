@@ -33,7 +33,7 @@ namespace atomic_dex::kdf
         std::size_t gas_limit;
     };
 
-    void from_json(const nlohmann::json& j, fee_erc_coin& cfg);
+    void from_json(const nlohmann::json& j, fee_tendermint_coin& cfg);
 
     struct fee_qrc_coin
     {
