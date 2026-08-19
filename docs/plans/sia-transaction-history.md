@@ -1,9 +1,12 @@
 # Plan: show Siacoin (SC) transaction history in the desktop wallet
 
-> **Status:** not started. Activation and swaps work (`9882d3688`). Withdrawal
-> (sending SC) was fixed in two follow-up sessions (see "Prior work" below).
-> Viewing past SC transactions — the subject of this plan — has not been
-> touched: the wallet still tells KDF not to track SC history at all.
+> **Status:** implemented (both flags flipped, predicates extracted into
+> `kdf.coin.activation.policy.{hpp,cpp}`, fixture-based unit tests added and
+> wired into CI — see "Implementation steps" and the CI section below for
+> what landed and one deviation from this plan's original assumption about
+> transaction.data.cpp's dependency footprint). The human-operator checklist
+> below is still open — it needs a live KDF instance and real SC activity,
+> neither available from this repo alone.
 
 ## tl;dr for whoever implements this
 

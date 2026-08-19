@@ -33,6 +33,7 @@
 #include <QSettings>
 
 #include "atomicdex/api/kdf/utxo_merge_params.hpp"
+#include "atomicdex/services/kdf/kdf.coin.activation.policy.hpp"
 #include "atomicdex/api/kdf/rpc_v1/rpc.electrum.hpp"
 #include "atomicdex/api/kdf/rpc_v1/rpc.enable.hpp"
 #include "atomicdex/api/kdf/rpc_v1/rpc.min_trading_vol.hpp"
@@ -1271,40 +1272,16 @@ namespace atomic_dex
                   { this->handle_exception_pplx_task(previous_task, "batch_balance_and_tx", batch); });
     }
 
-    bool 
+    bool
     kdf_service::uses_task_activation(const coin_config_t& coin_info) const
     {
-        if (coin_info.coin_type == CoinType::ZHTLC)
-        {
-            return true;
-        }
-        if (coin_info.coin_type == CoinType::SIA)
-        {
-            return true;
-        }
-        return false;
+        return atomic_dex::uses_task_activation(coin_info);
     }
 
-    bool 
+    bool
     kdf_service::uses_v2_history(const coin_config_t& coin_info) const
     {
-        if (coin_info.coin_type == CoinType::ZHTLC)
-        {
-            return true;
-        }
-        if (coin_info.coin_type == CoinType::SIA)
-        {
-            return true;
-        }
-        if (coin_info.coin_type == CoinType::TENDERMINT)
-        {
-            return true;
-        }
-        if (coin_info.coin_type == CoinType::TENDERMINTTOKEN)
-        {
-            return true;
-        }
-        return false;
+        return atomic_dex::uses_v2_history(coin_info);
     }
 
     std::tuple<nlohmann::json, std::vector<std::string>, std::vector<std::string>>
@@ -1470,7 +1447,12 @@ namespace atomic_dex
                 t_enable_sia_coin_request request{
                     .coin_name            = coin_info.ticker,
                     .server_url           = sia_urls->at(0),
-                    .with_tx_history      = false}; // NotSupportedFor
+                    // KDF Reloaded ch.53 (2026-08-13, 3a078bb91) added Sia
+                    // history reporting; leaving this false silently starves
+                    // the coin's history loop forever (HistorySyncState::
+                    // NotEnabled), with no error to find it by. See
+                    // docs/plans/sia-transaction-history.md.
+                    .with_tx_history      = true};
 
                 nlohmann::json j = kdf::template_request("task::enable_sia::init", true);
                 kdf::to_json(j, request);
