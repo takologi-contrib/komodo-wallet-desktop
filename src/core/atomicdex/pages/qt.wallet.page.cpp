@@ -645,6 +645,13 @@ namespace atomic_dex
                                     {
                                         j_out["withdraw_answer"]["fee_details"]["amount"] = j_out["withdraw_answer"]["fee_details"]["miner_fee"];
                                     }
+                                    // Sia's TxFeeDetails names this field "total_amount", not "amount"
+                                    // (KDF Reloaded CRD ch.20 R-W4 -- corpus-confirmed dictated wire name,
+                                    // not a naming inconsistency to fix on the KDF side).
+                                    if (j_out.at("withdraw_answer").at("fee_details").contains("total_amount") && !j_out.at("withdraw_answer").at("fee_details").contains("amount"))
+                                    {
+                                        j_out["withdraw_answer"]["fee_details"]["amount"] = j_out["withdraw_answer"]["fee_details"]["total_amount"];
+                                    }
 
                                     // Add fees amount in fiat currency.
                                     auto fee = j_out["withdraw_answer"]["fee_details"]["amount"].get<std::string>();
@@ -797,6 +804,16 @@ namespace atomic_dex
                     if (j_out.at("withdraw_answer").at("fee_details").contains("miner_fee") && !j_out.at("withdraw_answer").at("fee_details").contains("amount"))
                     {
                         j_out["withdraw_answer"]["fee_details"]["amount"] = j_out["withdraw_answer"]["fee_details"]["miner_fee"];
+                    }
+                    // Sia's TxFeeDetails names this field "total_amount", not "amount"
+                    // (KDF Reloaded CRD ch.20 R-W4 -- corpus-confirmed dictated wire name,
+                    // not a naming inconsistency to fix on the KDF side). This is the path
+                    // Sia's synchronous withdraw actually takes; the block above is the
+                    // ZHTLC task-based path, fixed the same way for consistency in case
+                    // Sia ever moves onto it.
+                    if (j_out.at("withdraw_answer").at("fee_details").contains("total_amount") && !j_out.at("withdraw_answer").at("fee_details").contains("amount"))
+                    {
+                        j_out["withdraw_answer"]["fee_details"]["amount"] = j_out["withdraw_answer"]["fee_details"]["total_amount"];
                     }
 
                     // Add fees amount in fiat currency.
