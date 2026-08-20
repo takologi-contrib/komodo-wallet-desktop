@@ -498,6 +498,11 @@ namespace atomic_dex
         return QString::fromStdString(atomic_dex::get_version());
     }
 
+    QString settings_page::get_commit_hash()
+    {
+        return QString::fromStdString(atomic_dex::get_commit_hash());
+    }
+
     QString settings_page::get_log_folder()
     {
         return QString::fromStdString(utils::get_atomic_dex_logs_folder().string());

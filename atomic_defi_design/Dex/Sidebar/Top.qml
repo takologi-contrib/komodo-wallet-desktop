@@ -84,4 +84,22 @@ MouseArea
 
         Component.onCompleted: opacity = 1 // isExpanded ? 1 : 0
     }
+
+    // Only present when the build was configured with
+    // DEX_SHOW_COMMIT_HASH=ON (off by default) -- see
+    // src/core/atomicdex/version/version.hpp.
+    DexLabel
+    {
+        id: commitHashLabel
+        anchors.horizontalCenter: versionLabel.horizontalCenter
+        anchors.top: versionLabel.bottom
+        anchors.topMargin: 4
+
+        text_value: General.commit_hash_string
+        font: DexTypo.caption
+        color: Dex.CurrentTheme.sidebarVersionTextColor
+        visible: General.commit_hash_string.length > 0
+
+        Component.onCompleted: opacity = 1
+    }
 }

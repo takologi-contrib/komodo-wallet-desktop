@@ -19,6 +19,35 @@ include(ipo_prerequisites)
 ##! Options
 option(WITH_HOTRELOAD "Enable to use qml Hot reload" OFF)
 
+# Off by default: a build's own git commit is not meaningful to an end user
+# and stays out of the startup log / UI unless explicitly asked for (CI
+# release builds turn this on -- see .github/workflows/atomicdex-desktop-ci.yml).
+# There is currently no other way to tell which commit a running desktop
+# build came from after the fact (the CI artifact's own filename embeds the
+# short SHA, but nothing in the installed app or its logs does).
+option(DEX_SHOW_COMMIT_HASH "Show the build's short git commit hash in the startup log and UI" OFF)
+
+set(DEX_GIT_COMMIT_HASH "")
+if (DEX_SHOW_COMMIT_HASH)
+    find_package(Git QUIET)
+    if (Git_FOUND)
+        execute_process(
+                COMMAND ${GIT_EXECUTABLE} rev-parse --short=9 HEAD
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                OUTPUT_VARIABLE DEX_GIT_COMMIT_HASH
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_QUIET
+                RESULT_VARIABLE DEX_GIT_COMMIT_HASH_RESULT)
+        if (NOT DEX_GIT_COMMIT_HASH_RESULT EQUAL 0)
+            set(DEX_GIT_COMMIT_HASH "")
+            message(WARNING "DEX_SHOW_COMMIT_HASH is ON but 'git rev-parse' failed (not a git checkout?) -- commit hash will be blank")
+        endif ()
+    else ()
+        message(WARNING "DEX_SHOW_COMMIT_HASH is ON but git was not found -- commit hash will be blank")
+    endif ()
+endif ()
+message(STATUS "DEX_GIT_COMMIT_HASH --> ${DEX_GIT_COMMIT_HASH}")
+
 ##! Antara
 include(antara)
 ##! Calling this macros provided by the sdk will if you are on Apple init the environment for this OS (std::filesystem).

@@ -367,6 +367,7 @@ run_app(int argc, char** argv)
     }
 #endif
     init_logging();
+    SPDLOG_INFO("{} version: {}", DEX_NAME, atomic_dex::get_version_display_string());
     connect_signals_handler();
     init_timezone_db();
     init_wally();

@@ -292,7 +292,7 @@ jobs:
           export VCPKG_BUILD_TYPE=${{ matrix.typelc }}
           mkdir ci_tools_atomic_dex/build-${{ matrix.type }}
           cd ci_tools_atomic_dex/build-${{ matrix.type }}
-          cmake -GNinja -DCMAKE_BUILD_TYPE=${{ matrix.type }} ../../ -DCMAKE_OSX_SYSROOT=$HOME/sdk/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=11.3
+          cmake -GNinja -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DDEX_SHOW_COMMIT_HASH=ON ../../ -DCMAKE_OSX_SYSROOT=$HOME/sdk/MacOSX11.3.sdk -DCMAKE_OSX_DEPLOYMENT_TARGET=11.3
           cmake --build . --config ${{ matrix.type }}
           ninja install
 
@@ -303,7 +303,7 @@ jobs:
           export VCPKG_BUILD_TYPE=${{ matrix.typelc }}
           mkdir ci_tools_atomic_dex/build-${{ matrix.type }}
           cd ci_tools_atomic_dex/build-${{ matrix.type }}
-          cmake -GNinja -DCMAKE_BUILD_TYPE=${{ matrix.type }} ../../
+          cmake -GNinja -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DDEX_SHOW_COMMIT_HASH=ON ../../
           cmake --build . --config ${{ matrix.type }}
           ninja install
 

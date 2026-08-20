@@ -120,6 +120,7 @@ namespace atomic_dex
         Q_INVOKABLE static QString              get_log_folder();
         Q_INVOKABLE static QString              get_export_folder();
         Q_INVOKABLE static QString              get_version();
+        Q_INVOKABLE static QString              get_commit_hash();
         Q_INVOKABLE void                        fetchPublicKey();
         Q_INVOKABLE nlohmann::json              get_task_activation_status();
 

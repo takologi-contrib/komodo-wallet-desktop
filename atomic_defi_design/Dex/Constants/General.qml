@@ -281,6 +281,9 @@ QtObject {
     readonly property string right_arrow_icon: "⮕"
     readonly property string privacy_text: "*****"
     readonly property string version_string: "Desktop v" + API.app.settings_pg.get_version()
+    // Empty when the build was configured with DEX_SHOW_COMMIT_HASH=OFF
+    // (the default) -- see src/core/atomicdex/version/version.hpp.
+    readonly property string commit_hash_string: API.app.settings_pg.get_commit_hash()
     property bool privacy_mode: false
     readonly property var reg_pass_input: /[A-Za-z0-9@#$€£%{}[\]()\/\\'"`~,;:.<>+\-_=!^&*|?]+/
     readonly property var reg_pass_valid_low_security: /^(?=.{1,}).*$/
