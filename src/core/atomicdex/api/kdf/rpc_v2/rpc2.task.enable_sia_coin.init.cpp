@@ -28,7 +28,15 @@ namespace atomic_dex::kdf
     {
         j["params"]["ticker"]                                                          = request.coin_name;
         j["params"]["activation_params"]["client_conf"]["server_url"]                  = request.server_url;
-        j["params"]["tx_history"]                                                      = request.with_tx_history;
+        // KDF's InitStandaloneCoinReq<T> only has "ticker" and
+        // "activation_params" fields -- an unrecognized sibling key (this
+        // used to be "params.tx_history") is silently dropped by serde, so
+        // KDF never actually saw tx_history=true and the coin activated
+        // with history tracking off regardless of what this wallet
+        // requested. tx_history belongs to SiaCoinActivationRequest, i.e.
+        // inside activation_params, matching the shape a task::enable_sia::init
+        // request actually needs (confirmed against a real wire capture).
+        j["params"]["activation_params"]["tx_history"]                                = request.with_tx_history;
     }
 
     //! Deserialization

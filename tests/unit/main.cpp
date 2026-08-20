@@ -39,7 +39,16 @@ namespace
         enable_sia_coin_request request{.coin_name = "SC", .server_url = "https://walletd.example.com", .with_tx_history = true};
         nlohmann::json          j;
         to_json(j, request);
-        check(j.at("params").at("tx_history").get<bool>() == true, "enable_sia_coin_request::to_json emits params.tx_history == true");
+        // KDF's InitStandaloneCoinReq<T> only has "ticker"/"activation_params"
+        // fields -- tx_history must be *inside* activation_params (confirmed
+        // against a real task::enable_sia::init wire capture) or KDF silently
+        // drops it as an unrecognized field and activates history-tracking
+        // off regardless. A prior version of this test checked params.tx_history
+        // directly and passed against the same wrong shape the implementation
+        // used -- validating the bug instead of catching it.
+        check(
+            j.at("params").at("activation_params").at("tx_history").get<bool>() == true,
+            "enable_sia_coin_request::to_json emits params.activation_params.tx_history == true");
     }
 
     // ── Test case 2: tx_history_request::to_json(requires_v2=false) is flat v1 ──
